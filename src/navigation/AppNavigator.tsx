@@ -17,6 +17,9 @@ import AppliedJobsScreen from '../screens/main/AppliedJobsScreen';
 import SavedJobsScreen from '../screens/main/SavedJobsScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
 import ProfileEditScreen from '../screens/main/ProfileEditScreen';
+import NotificationsScreen from '../screens/main/NotificationsScreen';
+import AIChatScreen from '../screens/main/AIChatScreen';
+import CvManagerScreen from '../screens/main/CvManagerScreen';
 
 export type AuthStackParamList = {
   Login: undefined;
@@ -28,6 +31,8 @@ export type MainTabParamList = {
   Jobs: undefined;
   AppliedJobs: undefined;
   SavedJobs: undefined;
+  Notifications: undefined;
+  Assistant: undefined;
   Profile: undefined;
 };
 
@@ -35,6 +40,7 @@ export type MainStackParamList = {
   MainTabs: undefined;
   JobDetail: { jobId: string };
   ProfileEdit: undefined;
+  CvManager: undefined;
 };
 
 export type RootStackParamList = {
@@ -62,6 +68,10 @@ const MainTabs = () => {
             iconName = focused ? 'checkmark-circle' : 'checkmark-circle-outline';
           } else if (route.name === 'SavedJobs') {
             iconName = focused ? 'bookmark' : 'bookmark-outline';
+          } else if (route.name === 'Notifications') {
+            iconName = focused ? 'notifications' : 'notifications-outline';
+          } else if (route.name === 'Assistant') {
+            iconName = focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           } else {
@@ -94,6 +104,16 @@ const MainTabs = () => {
         name="SavedJobs"
         component={SavedJobsScreen}
         options={{ title: 'Đã lưu' }}
+      />
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{ title: 'Thông báo' }}
+      />
+      <Tab.Screen
+        name="Assistant"
+        component={AIChatScreen}
+        options={{ title: 'AI Assistant' }}
       />
       <Tab.Screen
         name="Profile"
@@ -137,6 +157,15 @@ const MainStack = () => {
           headerShown: true, 
           title: 'Chỉnh sửa hồ sơ',
           headerBackTitle: 'Back'
+        }}
+      />
+      <MainStackNavigator.Screen
+        name="CvManager"
+        component={CvManagerScreen}
+        options={{
+          headerShown: true,
+          title: 'Quản lý CV',
+          headerBackTitle: 'Back',
         }}
       />
     </MainStackNavigator.Navigator>

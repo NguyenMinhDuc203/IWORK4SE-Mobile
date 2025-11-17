@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 
 export const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:8080';
+export const WS_BASE_URL = API_BASE_URL.replace(/^http/, 'ws');
 
 export const STORAGE_KEYS = {
   TOKEN: 'token',

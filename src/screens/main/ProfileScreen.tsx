@@ -92,7 +92,10 @@ const ProfileScreen = () => {
           <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('CvManager')}
+        >
           <Ionicons name="document-text-outline" size={24} color="#1e7efc" />
           <Text style={styles.menuText}>Quản lý CV</Text>
           <Ionicons name="chevron-forward" size={20} color="#9ca3af" />

@@ -100,6 +100,8 @@ export interface CV {
   fileName?: string;
   url: string;
   uploadedDate: string;
+  isUsedInApplication?: boolean;
+  applicationId?: string | null;
 }
 
 export interface Applicant {
@@ -140,5 +142,38 @@ export interface JobCategory {
   createAt: string;
   updateAt: string;
   jobPostCount?: number;
+}
+
+export interface CVPageResponse {
+  content: CV[];
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  totalElements: number;
+}
+
+export interface NotificationItem {
+  id: string;
+  userId: string;
+  userName: string;
+  applicationId?: string | null;
+  jobPostId?: string | null;
+  type: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface NotificationPageResponse {
+  content: NotificationItem[];
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  totalElements: number;
+}
+
+export interface AIChatResponse {
+  response: string;
+  conversationHistory?: string;
 }
 

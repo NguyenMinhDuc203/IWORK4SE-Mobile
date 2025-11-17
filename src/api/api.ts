@@ -1,6 +1,20 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL, STORAGE_KEYS } from '../constants/config';
-import { ApiResponse, ApiError, JobPost, JobPostPageResponse, Application, SavedJob, CV, Applicant, JobCategory } from '../types/api';
+import {
+  ApiResponse,
+  ApiError,
+  JobPost,
+  JobPostPageResponse,
+  Application,
+  SavedJob,
+  CV,
+  Applicant,
+  JobCategory,
+  CVPageResponse,
+  NotificationPageResponse,
+  NotificationItem,
+  AIChatResponse,
+} from '../types/api';
 
 let isRefreshing = false;
 let refreshSubscribers: Array<(token: string) => void> = [];
@@ -326,7 +340,7 @@ export const api = {
     }),
 
   getCVsByApplicant: (applicantId: string, page = 0, size = 10) =>
-    fetchApi<ApiResponse<any>>(`/cv/applicant/${applicantId}?page=${page}&size=${size}`),
+    fetchApi<ApiResponse<CVPageResponse>>(`/cv/applicant/${applicantId}?page=${page}&size=${size}`),
 
   deleteCV: (id: string) =>
     fetchApi<ApiResponse<any>>(`/cv/${id}`, {
@@ -385,5 +399,16 @@ export const api = {
 
   // Job Categories
   getAllJobCategories: () => fetchApi<ApiResponse<JobCategory[]>>('/job-category/all'),
+
+  // Notifications
+  getNotificationsByUser: (userId: string, page = 0, size = 20) =>
+    fetchApi<ApiResponse<NotificationPageResponse>>(`/notification/user/${userId}?page=${page}&size=${size}`),
+
+  // AI Chat
+  sendAIMessage: (message: string, conversationHistory?: string) =>
+    fetchApi<AIChatResponse | ApiResponse<AIChatResponse>>('/api/ai-chat/send', {
+      method: 'POST',
+      body: JSON.stringify({ message, conversationHistory }),
+    }),
 };
 
