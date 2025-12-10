@@ -35,16 +35,27 @@ const RegisterScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async () => {
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.userName || !formData.password) {
-      Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin');
+    // Validation giống frontend
+    if (!formData.firstName.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập họ');
       return;
     }
-
+    if (!formData.lastName.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập tên');
+      return;
+    }
+    if (!formData.email.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập email');
+      return;
+    }
+    if (!formData.userName.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập tên đăng nhập');
+      return;
+    }
     if (formData.password !== formData.confirmPassword) {
       Alert.alert('Lỗi', 'Mật khẩu xác nhận không khớp');
       return;
     }
-
     if (formData.password.length < 6) {
       Alert.alert('Lỗi', 'Mật khẩu phải có ít nhất 6 ký tự');
       return;
@@ -53,12 +64,12 @@ const RegisterScreen = () => {
     setIsLoading(true);
     try {
       await register({
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        userName: formData.userName,
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim(),
+        userName: formData.userName.trim(),
         password: formData.password,
-        userType: 'APPLICANT',
+        userType: 'APPLICANT', // Chỉ cho phép đăng ký APPLICANT
       });
       Alert.alert('Thành công', 'Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.', [
         { text: 'OK', onPress: () => navigation.navigate('Login') },
@@ -108,7 +119,7 @@ const RegisterScreen = () => {
             <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Email"
+              placeholder="Nhập email"
               value={formData.email}
               onChangeText={(text) => setFormData({ ...formData, email: text })}
               keyboardType="email-address"
@@ -175,7 +186,10 @@ const RegisterScreen = () => {
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator color="#fff" />
+              <View style={styles.buttonContent}>
+                <ActivityIndicator color="#fff" size="small" />
+                <Text style={[styles.buttonText, { marginLeft: 8 }]}>Đang đăng ký...</Text>
+              </View>
             ) : (
               <Text style={styles.buttonText}>Đăng ký</Text>
             )}
@@ -261,6 +275,11 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.6,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   buttonText: {
     color: '#fff',

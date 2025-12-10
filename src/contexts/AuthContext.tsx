@@ -66,6 +66,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const persistAuth = async (payload: {
+    accessToken: string;
+    refreshToken: string;
+    role: string;
+    userId: string;
+    fullName: string;
+    email: string;
+    phone?: string;
+  }) => {
+    const { accessToken, refreshToken, role, userId, fullName, email, phone } = payload;
+
+    await AsyncStorage.multiSet([
+      [STORAGE_KEYS.TOKEN, accessToken],
+      [STORAGE_KEYS.REFRESH_TOKEN, refreshToken],
+      [STORAGE_KEYS.USER_ID, userId],
+      [STORAGE_KEYS.USER_TYPE, role],
+      [STORAGE_KEYS.ROLE, role],
+      [STORAGE_KEYS.FULL_NAME, fullName],
+      [STORAGE_KEYS.EMAIL, email],
+      [STORAGE_KEYS.PHONE, phone || ''],
+    ]);
+
+    setUser({
+      userId,
+      userType: role,
+      role,
+      fullName,
+      email,
+      phone: phone || '',
+    });
+  };
+
   const login = async (username: string, password: string) => {
     try {
       const response = await api.login({
@@ -75,28 +107,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         versionApp: '1.0.0',
         deviceToken: 'mobile-device',
       });
-
-      const { accessToken, refreshToken, role, userId, fullName, email, phone } = response.data;
-
-      await AsyncStorage.multiSet([
-        [STORAGE_KEYS.TOKEN, accessToken],
-        [STORAGE_KEYS.REFRESH_TOKEN, refreshToken],
-        [STORAGE_KEYS.USER_ID, userId],
-        [STORAGE_KEYS.USER_TYPE, role],
-        [STORAGE_KEYS.ROLE, role],
-        [STORAGE_KEYS.FULL_NAME, fullName],
-        [STORAGE_KEYS.EMAIL, email],
-        [STORAGE_KEYS.PHONE, phone || ''],
-      ]);
-
-      setUser({
-        userId,
-        userType: role,
-        role,
-        fullName,
-        email,
-        phone: phone || '',
-      });
+      await persistAuth(response.data);
     } catch (error) {
       console.error('Login error:', error);
       throw error;

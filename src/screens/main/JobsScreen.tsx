@@ -36,6 +36,9 @@ const JobsScreen = () => {
     location: '',
     jobType: '',
     categoryId: '',
+    minSalary: '',
+    maxSalary: '',
+    experience: '',
   });
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -50,32 +53,48 @@ const JobsScreen = () => {
       const params: any = {
         keywords: searchKeyword || undefined,
         location: filters.location || undefined,
-        jobType: filters.jobType || undefined,
-        jobStatus: 'ACCEPTED',
+        jobType: filters.jobType === '' ? undefined : filters.jobType as 'INTERNSHIP' | 'FRESHER' | 'JUNIOR' | 'SENIOR' | 'MANAGER',
+        categoryId: filters.categoryId === '' ? undefined : parseInt(filters.categoryId),
+        minSalary: filters.minSalary ? Number(filters.minSalary) * 1000000 : undefined,
+        maxSalary: filters.maxSalary ? Number(filters.maxSalary) * 1000000 : undefined,
+        experience: filters.experience === '' ? undefined : filters.experience,
+        jobStatus: 'ACCEPTED' as const,
         page,
         size: 10,
       };
 
-      if (filters.categoryId) {
-        params.categoryId = parseInt(filters.categoryId);
-      }
-
       const response = await api.searchJobPosts(params);
-      if (response && response.content) {
-        if (page === 0) {
-          setJobs(response.content);
-        } else {
-          setJobs((prev) => [...prev, ...response.content]);
-        }
-        setTotalPages(response.totalPages ?? 0);
+      
+      // Handle response format giống website (có thể là response.data.content hoặc response.content)
+      let paginationData;
+      if (response && response.data && response.data.content) {
+        // Standard ApiResponse format
+        paginationData = response.data;
+      } else if (response && response.content) {
+        // Direct pagination response format
+        paginationData = response;
       } else {
         if (page === 0) {
           setJobs([]);
           setTotalPages(0);
         }
+        setIsLoading(false);
+        setRefreshing(false);
+        return;
       }
+
+      if (page === 0) {
+        setJobs(paginationData.content);
+      } else {
+        setJobs((prev) => [...prev, ...paginationData.content]);
+      }
+      setTotalPages(paginationData.totalPages ?? 0);
     } catch (error) {
       console.error('Error loading jobs:', error);
+      if (page === 0) {
+        setJobs([]);
+        setTotalPages(0);
+      }
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -165,13 +184,29 @@ const JobsScreen = () => {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={styles.filterButton}
-          onPress={() => setShowFilters(true)}
-        >
-          <Ionicons name="filter" size={20} color="#1e7efc" />
-          <Text style={styles.filterText}>Bộ lọc</Text>
-        </TouchableOpacity>
+        <View style={styles.actionsRight}>
+          <TouchableOpacity
+            style={styles.textButton}
+            onPress={() => navigation.navigate('SavedJobs')}
+          >
+            <Ionicons name="bookmark-outline" size={18} color="#1e7efc" />
+            <Text style={styles.textButtonLabel}>Đã lưu</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.textButton}
+            onPress={() => navigation.navigate('AppliedJobs')}
+          >
+            <Ionicons name="checkmark-done-outline" size={18} color="#1e7efc" />
+            <Text style={styles.textButtonLabel}>Đã ứng tuyển</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.filterButton}
+            onPress={() => setShowFilters(true)}
+          >
+            <Ionicons name="filter" size={20} color="#1e7efc" />
+            <Text style={styles.filterText}>Bộ lọc</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {isLoading && page === 0 ? (
@@ -255,13 +290,65 @@ const JobsScreen = () => {
                   ))}
                 </View>
               </View>
+
+              <View style={styles.filterItem}>
+                <Text style={styles.filterLabel}>Lương tối thiểu (Triệu VNĐ)</Text>
+                <TextInput
+                  style={styles.filterInput}
+                  placeholder="Nhập mức lương tối thiểu"
+                  value={filters.minSalary}
+                  onChangeText={(text) => setFilters({ ...filters, minSalary: text })}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.filterItem}>
+                <Text style={styles.filterLabel}>Lương tối đa (Triệu VNĐ)</Text>
+                <TextInput
+                  style={styles.filterInput}
+                  placeholder="Nhập mức lương tối đa"
+                  value={filters.maxSalary}
+                  onChangeText={(text) => setFilters({ ...filters, maxSalary: text })}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.filterItem}>
+                <Text style={styles.filterLabel}>Năm kinh nghiệm</Text>
+                <View style={styles.filterOptions}>
+                  {['Không yêu cầu', 'Dưới 1 năm', '1 - 2 năm', '3 - 5 năm', 'Trên 5 năm'].map((exp) => (
+                    <TouchableOpacity
+                      key={exp}
+                      style={[
+                        styles.filterOption,
+                        filters.experience === exp && styles.filterOptionActive,
+                      ]}
+                      onPress={() =>
+                        setFilters({
+                          ...filters,
+                          experience: filters.experience === exp ? '' : exp,
+                        })
+                      }
+                    >
+                      <Text
+                        style={[
+                          styles.filterOptionText,
+                          filters.experience === exp && styles.filterOptionTextActive,
+                        ]}
+                      >
+                        {exp}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
             </View>
 
             <View style={styles.modalFooter}>
               <TouchableOpacity
                 style={styles.resetButton}
                 onPress={() => {
-                  setFilters({ location: '', jobType: '', categoryId: '' });
+                  setFilters({ location: '', jobType: '', categoryId: '', minSalary: '', maxSalary: '', experience: '' });
                   setPage(0);
                 }}
               >
@@ -317,15 +404,38 @@ const styles = StyleSheet.create({
     height: 40,
     fontSize: 14,
   },
+  actionsRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#e8f0ff',
+    borderRadius: 8,
   },
   filterText: {
-    marginLeft: 4,
+    marginLeft: 6,
     color: '#1e7efc',
     fontSize: 14,
+    fontWeight: '600',
+  },
+  textButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+  },
+  textButtonLabel: {
+    color: '#1e7efc',
+    marginLeft: 6,
     fontWeight: '600',
   },
   listContent: {

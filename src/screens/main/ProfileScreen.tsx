@@ -28,6 +28,7 @@ const ProfileScreen = () => {
   const { user, logout } = useAuth();
   const [applicant, setApplicant] = useState<Applicant | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRequestingActivation, setIsRequestingActivation] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -44,6 +45,43 @@ const ProfileScreen = () => {
       console.error('Error loading profile:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRequestActivation = async () => {
+    if (!user?.userId) return;
+
+    setIsRequestingActivation(true);
+    try {
+      await api.requestActivation(user.userId);
+      Alert.alert(
+        'Thành công',
+        `Đã gửi email kích hoạt tới ${applicant?.email || 'hộp thư của bạn'}. Vui lòng mở email để xác thực, tài khoản sẽ chuyển sang trạng thái Active sau khi xác nhận.`,
+        [
+          {
+            text: 'OK',
+            onPress: async () => {
+              // Reload profile to get updated status (silently)
+              if (user?.userId) {
+                try {
+                  const response = await api.getApplicantById(user.userId);
+                  setApplicant(response.data);
+                } catch (error) {
+                  console.error('Error reloading profile:', error);
+                }
+              }
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      Alert.alert(
+        'Lỗi',
+        error?.message || 'Không thể gửi yêu cầu kích hoạt. Vui lòng thử lại sau.'
+      );
+      console.error('Error requesting activation:', error);
+    } finally {
+      setIsRequestingActivation(false);
     }
   };
 
@@ -83,6 +121,20 @@ const ProfileScreen = () => {
       </View>
 
       <View style={styles.section}>
+        {/* Nút Kích hoạt cho user INACTIVE */}
+        {applicant?.userStatus === 'INACTIVE' && (
+          <TouchableOpacity
+            style={styles.activationButton}
+            onPress={handleRequestActivation}
+            disabled={isRequestingActivation}
+          >
+            <Ionicons name="shield-outline" size={24} color="#f97316" />
+            <Text style={styles.activationText}>
+              {isRequestingActivation ? 'Đang gửi...' : 'Kích hoạt'}
+            </Text>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity
           style={styles.menuItem}
           onPress={() => navigation.navigate('ProfileEdit')}
@@ -101,7 +153,10 @@ const ProfileScreen = () => {
           <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('ChangePassword')}
+        >
           <Ionicons name="lock-closed-outline" size={24} color="#1e7efc" />
           <Text style={styles.menuText}>Đổi mật khẩu</Text>
           <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
@@ -295,6 +350,23 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 16,
     color: '#ef4444',
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  activationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#f97316',
+    backgroundColor: '#fff7ed',
+    marginBottom: 16,
+  },
+  activationText: {
+    fontSize: 16,
+    color: '#f97316',
     fontWeight: '600',
     marginLeft: 8,
   },

@@ -21,7 +21,7 @@ export interface User {
   email: string;
   userName: string;
   userType: 'APPLICANT' | 'EMPLOYER';
-  status: 'ACTIVE' | 'INACTIVE' | 'PENDING';
+  status: 'ACTIVE' | 'INACTIVE' | 'BANNED' | 'DELETED' | 'PENDING';
   createdAt: string;
   updatedAt: string;
 }
@@ -123,6 +123,7 @@ export interface Applicant {
   degreeLevel: string;
   graduationYear: number;
   gpa: number;
+  userStatus?: 'ACTIVE' | 'INACTIVE' | 'BANNED' | 'DELETED';
 }
 
 export interface Certificate {
@@ -175,5 +176,37 @@ export interface NotificationPageResponse {
 export interface AIChatResponse {
   response: string;
   conversationHistory?: string;
+}
+
+export type Page<T> = {
+  content: T[];
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  totalElements: number;
+};
+
+export interface Conversation {
+  id: number;
+  user1Id: string;
+  user1Name: string;
+  user2Id: string;
+  user2Name: string;
+  lastMessageTime: string;
+  unreadCount: number;
+  isActive: boolean;
+}
+
+export interface ChatMessage {
+  id: number;
+  conversationId: number;
+  senderId: string;
+  senderName: string;
+  receiverId: string;
+  content?: string;
+  imageUrl?: string;
+  messageType: 'TEXT' | 'IMAGE';
+  sentAt: string;
+  isRead: boolean;
 }
 

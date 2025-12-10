@@ -117,6 +117,21 @@ const JobDetailScreen = () => {
     }
   };
 
+  const handleChatWithEmployer = () => {
+    if (!user?.userId) {
+      Alert.alert('Lỗi', 'Vui lòng đăng nhập để nhắn tin với nhà tuyển dụng');
+      return;
+    }
+    if (!job?.employerId) {
+      Alert.alert('Lỗi', 'Không tìm thấy thông tin nhà tuyển dụng');
+      return;
+    }
+    navigation.navigate('Chat', {
+      receiverId: job.employerId,
+      receiverName: job.employerName || job.companyName || 'Nhà tuyển dụng',
+    });
+  };
+
   const formatSalary = (min: number, max: number) => {
     if (min && max) {
       return `${(min / 1000000).toFixed(1)} - ${(max / 1000000).toFixed(1)} triệu VNĐ`;
@@ -235,6 +250,14 @@ const JobDetailScreen = () => {
       )}
 
       <View style={styles.actionButtons}>
+        <TouchableOpacity
+          style={[styles.button, styles.messageButton]}
+          onPress={handleChatWithEmployer}
+        >
+          <Ionicons name="chatbubbles-outline" size={20} color="#0f172a" />
+          <Text style={styles.messageButtonText}>Nhắn tin</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={[styles.button, styles.saveButton]}
           onPress={handleSaveJob}
@@ -383,6 +406,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6',
     borderWidth: 1,
     borderColor: '#1e7efc',
+  },
+  messageButton: {
+    backgroundColor: '#e0f2fe',
+    borderWidth: 1,
+    borderColor: '#0ea5e9',
+  },
+  messageButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0f172a',
   },
   saveButtonText: {
     fontSize: 14,

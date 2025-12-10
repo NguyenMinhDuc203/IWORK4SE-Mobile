@@ -14,6 +14,9 @@ import {
   NotificationPageResponse,
   NotificationItem,
   AIChatResponse,
+  Conversation,
+  ChatMessage,
+  Page,
 } from '../types/api';
 
 let isRefreshing = false;
@@ -172,6 +175,21 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
       throw new ApiError(response.status, message);
     }
 
+    // Handle 204 No Content response (no body)
+    if (response.status === 204) {
+      return undefined as any;
+    }
+
+    // Check if response has content
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const text = await response.text();
+      if (text.trim() === '') {
+        return undefined as any;
+      }
+      return JSON.parse(text);
+    }
+
     return response.json();
   } catch (error) {
     clearTimeout(timeoutId);
@@ -242,11 +260,36 @@ export const api = {
     }),
 
   changePassword: (data: {
-    currentPassword: string;
+    id: string;
+    oldPassword: string;
     newPassword: string;
+    confirmPassword: string;
   }) =>
     fetchApi<ApiResponse<any>>('/user/change-pwd', {
       method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  // Password Reset
+  forgotPassword: (data: { email: string }) =>
+    fetchApi<ApiResponse<{ success: boolean; message: string }>>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  verifyResetToken: (data: { token: string }) =>
+    fetchApi<ApiResponse<{ valid: boolean; message?: string }>>('/auth/verify-reset-token', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  resetPassword: (data: {
+    token: string;
+    newPassword: string;
+    confirmPassword: string;
+  }) =>
+    fetchApi<ApiResponse<{ success: boolean; message: string }>>('/auth/reset-password', {
+      method: 'POST',
       body: JSON.stringify(data),
     }),
 
@@ -288,11 +331,21 @@ export const api = {
     );
 
     // Backend /search/job-posts returns a Spring Page<JobPostDocument> directly (not wrapped).
-    // So we return the page object as-is.
-    return fetchApi<{
+    // But it might be wrapped in ApiResponse format, so we handle both cases.
+    return fetchApi<ApiResponse<{
       content: JobPost[];
-      pageNumber: number;
-      pageSize: number;
+      pageNumber?: number;
+      number?: number;
+      pageSize?: number;
+      size?: number;
+      totalPages: number;
+      totalElements: number;
+    }> | {
+      content: JobPost[];
+      pageNumber?: number;
+      number?: number;
+      pageSize?: number;
+      size?: number;
       totalPages: number;
       totalElements: number;
     }>(`/search/job-posts`, {
@@ -397,6 +450,12 @@ export const api = {
 
   getApplicantById: (id: string) => fetchApi<ApiResponse<Applicant>>(`/applicant/${id}`),
 
+  // User activation
+  requestActivation: (userId: string) =>
+    fetchApi<ApiResponse<any>>(`/user/request-activation?userId=${userId}`, {
+      method: 'POST',
+    }),
+
   // Job Categories
   getAllJobCategories: () => fetchApi<ApiResponse<JobCategory[]>>('/job-category/all'),
 
@@ -409,6 +468,30 @@ export const api = {
     fetchApi<AIChatResponse | ApiResponse<AIChatResponse>>('/api/ai-chat/send', {
       method: 'POST',
       body: JSON.stringify({ message, conversationHistory }),
+    }),
+
+  // Messaging
+  getConversations: (page = 0, size = 20) =>
+    fetchApi<Page<Conversation>>(`/messages/conversations?page=${page}&size=${size}`),
+
+  getConversationMessages: (conversationId: number, page = 0, size = 50) =>
+    fetchApi<Page<ChatMessage>>(
+      `/messages/conversation/${conversationId}?page=${page}&size=${size}`
+    ),
+
+  getActiveConversations: () => fetchApi<Conversation[]>(`/messages/conversations/active`),
+
+  getUnreadMessageCount: () => fetchApi<number>(`/messages/unread-count`),
+
+  sendMessage: (payload: { receiverId: string; content: string }) =>
+    fetchApi<ChatMessage>('/messages/send', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  markConversationAsRead: (conversationId: number) =>
+    fetchApi<void>(`/messages/conversation/${conversationId}/mark-as-read`, {
+      method: 'PUT',
     }),
 };
 

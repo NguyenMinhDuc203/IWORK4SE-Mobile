@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../api/api';
 import { NotificationItem } from '../../types/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { STORAGE_KEYS, WS_BASE_URL } from '../../constants/config';
+import { STORAGE_KEYS, API_BASE_URL } from '../../constants/config';
 
 const typeIconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
   APPLICATION_STATUS: 'checkmark-done',
@@ -37,28 +37,59 @@ const NotificationsScreen: React.FC = () => {
 
   const fetchNotifications = useCallback(
     async (reset = false) => {
-      if (!user?.userId) return;
+      if (!user?.userId) {
+        setIsLoading(false);
+        return;
+      }
       try {
         if (reset) {
           setIsRefreshing(true);
-          setPage(0);
+          setIsLoading(false); // Don't show loading spinner when refreshing
         } else {
           setIsLoading(true);
         }
+        
         const currentPage = reset ? 0 : page;
+        console.log('[Notifications] Fetching page:', currentPage, 'for user:', user.userId);
+        
         const response = await api.getNotificationsByUser(user.userId, currentPage, 20);
-        const pageData = response.data;
-        const items = pageData?.content ?? [];
-
+        console.log('[Notifications] Response received:', response);
+        
+        // Handle response format - ApiResponse<NotificationPageResponse>
+        let pageData: { content: NotificationItem[]; totalPages: number };
+        if (response && response.data && 'content' in response.data && 'totalPages' in response.data) {
+          // Standard ApiResponse format
+          pageData = {
+            content: (response.data as any).content || [],
+            totalPages: (response.data as any).totalPages || 0,
+          };
+        } else if (response && 'content' in response && 'totalPages' in response) {
+          // Direct pagination format
+          pageData = {
+            content: (response as any).content || [],
+            totalPages: (response as any).totalPages || 0,
+          };
+        } else {
+          console.error('[Notifications] Unexpected response format:', response);
+          pageData = { content: [], totalPages: 0 };
+        }
+        
+        console.log('[Notifications] Parsed data:', pageData);
+        const items = pageData.content ?? [];
         setNotifications(prev => (reset ? items : [...prev, ...items]));
-        setHasMore(currentPage + 1 < (pageData?.totalPages ?? 0));
+        setHasMore(currentPage + 1 < (pageData.totalPages ?? 0));
         if (reset) {
           setPage(1);
         } else {
           setPage(currentPage + 1);
         }
-      } catch (error) {
-        console.error('Error fetching notifications:', error);
+      } catch (error: any) {
+        console.error('[Notifications] Error fetching notifications:', error);
+        console.error('[Notifications] Error details:', error.message, error.stack);
+        // Set empty array on error to show empty state
+        if (reset) {
+          setNotifications([]);
+        }
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
@@ -68,45 +99,91 @@ const NotificationsScreen: React.FC = () => {
   );
 
   useEffect(() => {
-    fetchNotifications(true);
-  }, [fetchNotifications]);
+    if (user?.userId) {
+      fetchNotifications(true);
+    } else {
+      setIsLoading(false);
+    }
+  }, [user?.userId]); // Only depend on userId, not fetchNotifications to avoid infinite loops
 
+  // WebSocket connection - temporarily disabled to debug API loading issue
+  // Uncomment after API loading works correctly
+  /*
   useEffect(() => {
     if (!user?.userId || !user.userType) return;
 
     const connectWebSocket = async () => {
-      const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
-      const wsUrl = `${WS_BASE_URL}/ws-notification`;
+      try {
+        const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
+        // Use http/https URL for SockJS, not ws URL
+        if (!API_BASE_URL) {
+          console.error('[WS] API_BASE_URL is not defined');
+          return;
+        }
+        const baseUrl = API_BASE_URL.replace(/^ws/, 'http');
+        const wsUrl = `${baseUrl}/ws-notification`;
 
-      clientRef.current = new Client({
-        webSocketFactory: () => new SockJS(wsUrl),
-        connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
-        reconnectDelay: 5000,
-        onConnect: () => {
-          const role = user.userType.toLowerCase();
-          const destination = `/topic/notifications/${role}/${user.userId}`;
-          clientRef.current?.subscribe(destination, message => {
-            try {
-              const payload = JSON.parse(message.body);
-              const mapped = normalizeNotification(payload);
-              setNotifications(prev => [mapped, ...prev]);
-            } catch (error) {
-              console.error('Error parsing notification payload:', error);
+        console.log('[WS] API_BASE_URL:', API_BASE_URL);
+        console.log('[WS] Connecting to:', wsUrl);
+
+        clientRef.current = new Client({
+          webSocketFactory: () => new SockJS(wsUrl),
+          connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
+          reconnectDelay: 5000,
+          heartbeatIncoming: 4000,
+          heartbeatOutgoing: 4000,
+          onConnect: () => {
+            console.log('[WS] Connected successfully');
+            const role = user.userType.toLowerCase();
+            const destination = `/topic/notifications/${role}/${user.userId}`;
+            console.log('[WS] Subscribing to:', destination);
+            clientRef.current?.subscribe(destination, message => {
+              try {
+                const payload = JSON.parse(message.body);
+                const mapped = normalizeNotification(payload);
+                setNotifications(prev => [mapped, ...prev]);
+              } catch (error) {
+                console.error('Error parsing notification payload:', error);
+              }
+            });
+          },
+          onStompError: (frame) => {
+            console.error('[WS] STOMP error:', frame);
+          },
+          onWebSocketError: (event) => {
+            console.error('[WS] WebSocket error:', event);
+          },
+          onDisconnect: () => {
+            console.log('[WS] Disconnected');
+          },
+          debug: str => {
+            // Only log important messages, not all debug messages
+            if (str.includes('error') || str.includes('Error') || str.includes('Connected')) {
+              console.log('[WS]', str);
             }
-          });
-        },
-        debug: str => console.log('[WS]', str),
-      });
+          },
+        });
 
-      clientRef.current.activate();
+        clientRef.current.activate();
+      } catch (error) {
+        console.error('[WS] Failed to initialize WebSocket:', error);
+        // Continue without WebSocket - notifications will still load via API
+      }
     };
 
     connectWebSocket();
 
     return () => {
-      clientRef.current?.deactivate();
+      if (clientRef.current) {
+        try {
+          clientRef.current.deactivate();
+        } catch (error) {
+          console.error('[WS] Error deactivating:', error);
+        }
+      }
     };
   }, [user?.userId, user?.userType]);
+  */
 
   const normalizeNotification = (payload: Partial<NotificationItem>): NotificationItem => ({
     id: payload.id || String(Date.now()),

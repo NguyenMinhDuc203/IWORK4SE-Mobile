@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Animated,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { CompositeNavigationProp } from '@react-navigation/native';
@@ -15,7 +16,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MainTabParamList, MainStackParamList } from '../../navigation/AppNavigator';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../api/api';
-import { Application, JobPost } from '../../types/api';
+import { Application } from '../../types/api';
 import { Ionicons } from '@expo/vector-icons';
 
 type NavigationProp = CompositeNavigationProp<
@@ -30,6 +31,8 @@ const DashboardScreen = () => {
   const [savedJobsCount, setSavedJobsCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showMoreActions, setShowMoreActions] = useState(false);
+  const slideAnim = useRef(new Animated.Value(-260)).current;
 
   useEffect(() => {
     loadData();
@@ -61,6 +64,16 @@ const DashboardScreen = () => {
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
+  };
+
+  const toggleMoreActions = () => {
+    const next = !showMoreActions;
+    setShowMoreActions(next);
+    Animated.timing(slideAnim, {
+      toValue: next ? 0 : -260,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
   };
 
   const getStatusColor = (status: string) => {
@@ -342,6 +355,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 16,
     gap: 12,
+    position: 'relative',
+    overflow: 'hidden',
   },
   quickActionButton: {
     flex: 1,
@@ -360,6 +375,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1f2937',
     fontWeight: '600',
+  },
+  moreActions: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 8,
+    backgroundColor: '#f8fafc',
+  },
+  moreActionButton: {
+    flex: 1,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  moreActionText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0f172a',
   },
 });
 

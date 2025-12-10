@@ -1,4 +1,5 @@
 import React from 'react';
+import { TouchableOpacity } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -8,6 +9,8 @@ import { useAuth } from '../contexts/AuthContext';
 // Auth Screens
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
+import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
 
 // Main Screens
 import DashboardScreen from '../screens/main/DashboardScreen';
@@ -17,30 +20,38 @@ import AppliedJobsScreen from '../screens/main/AppliedJobsScreen';
 import SavedJobsScreen from '../screens/main/SavedJobsScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
 import ProfileEditScreen from '../screens/main/ProfileEditScreen';
+import ChangePasswordScreen from '../screens/main/ChangePasswordScreen';
 import NotificationsScreen from '../screens/main/NotificationsScreen';
 import AIChatScreen from '../screens/main/AIChatScreen';
 import CvManagerScreen from '../screens/main/CvManagerScreen';
+import MessagesScreen from '../screens/main/MessagesScreen';
+import ChatScreen from '../screens/main/ChatScreen';
 
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
+  ForgotPassword: undefined;
+  ResetPassword: { token?: string };
 };
 
 export type MainTabParamList = {
   Dashboard: undefined;
   Jobs: undefined;
-  AppliedJobs: undefined;
-  SavedJobs: undefined;
-  Notifications: undefined;
   Assistant: undefined;
+  Messages: undefined;
   Profile: undefined;
 };
 
 export type MainStackParamList = {
   MainTabs: undefined;
+  AppliedJobs: undefined;
+  SavedJobs: undefined;
+  Notifications: undefined;
   JobDetail: { jobId: string };
   ProfileEdit: undefined;
+  ChangePassword: undefined;
   CvManager: undefined;
+  Chat: { conversationId?: number; receiverId?: string; receiverName?: string };
 };
 
 export type RootStackParamList = {
@@ -56,7 +67,7 @@ const RootStack = createNativeStackNavigator<RootStackParamList>();
 const MainTabs = () => {
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
+      screenOptions={({ route, navigation }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap;
 
@@ -64,14 +75,10 @@ const MainTabs = () => {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Jobs') {
             iconName = focused ? 'briefcase' : 'briefcase-outline';
-          } else if (route.name === 'AppliedJobs') {
-            iconName = focused ? 'checkmark-circle' : 'checkmark-circle-outline';
-          } else if (route.name === 'SavedJobs') {
-            iconName = focused ? 'bookmark' : 'bookmark-outline';
-          } else if (route.name === 'Notifications') {
-            iconName = focused ? 'notifications' : 'notifications-outline';
           } else if (route.name === 'Assistant') {
-            iconName = focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline';
+            iconName = focused ? 'logo-android' : 'logo-android';
+          } else if (route.name === 'Messages') {
+            iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           } else {
@@ -83,6 +90,14 @@ const MainTabs = () => {
         tabBarActiveTintColor: '#1e7efc',
         tabBarInactiveTintColor: 'gray',
         headerShown: true,
+        headerRight: () => (
+          <TouchableOpacity
+            style={{ paddingHorizontal: 12 }}
+            onPress={() => navigation.navigate('Notifications')}
+          >
+            <Ionicons name="notifications-outline" size={22} color="#1e7efc" />
+          </TouchableOpacity>
+        ),
       })}
     >
       <Tab.Screen
@@ -96,24 +111,14 @@ const MainTabs = () => {
         options={{ title: 'Việc làm' }}
       />
       <Tab.Screen
-        name="AppliedJobs"
-        component={AppliedJobsScreen}
-        options={{ title: 'Đã ứng tuyển' }}
-      />
-      <Tab.Screen
-        name="SavedJobs"
-        component={SavedJobsScreen}
-        options={{ title: 'Đã lưu' }}
-      />
-      <Tab.Screen
-        name="Notifications"
-        component={NotificationsScreen}
-        options={{ title: 'Thông báo' }}
-      />
-      <Tab.Screen
         name="Assistant"
         component={AIChatScreen}
         options={{ title: 'AI Assistant' }}
+      />
+      <Tab.Screen
+        name="Messages"
+        component={MessagesScreen}
+        options={{ title: 'Tin nhắn' }}
       />
       <Tab.Screen
         name="Profile"
@@ -129,6 +134,8 @@ const AuthStack = () => {
     <AuthStackNavigator.Navigator screenOptions={{ headerShown: false }}>
       <AuthStackNavigator.Screen name="Login" component={LoginScreen} />
       <AuthStackNavigator.Screen name="Register" component={RegisterScreen} />
+      <AuthStackNavigator.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <AuthStackNavigator.Screen name="ResetPassword" component={ResetPasswordScreen} />
     </AuthStackNavigator.Navigator>
   );
 };
@@ -160,11 +167,56 @@ const MainStack = () => {
         }}
       />
       <MainStackNavigator.Screen
+        name="ChangePassword"
+        component={ChangePasswordScreen}
+        options={{
+          headerShown: true,
+          title: 'Thay đổi mật khẩu',
+          headerBackTitle: 'Back',
+        }}
+      />
+      <MainStackNavigator.Screen
         name="CvManager"
         component={CvManagerScreen}
         options={{
           headerShown: true,
           title: 'Quản lý CV',
+          headerBackTitle: 'Back',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name="Chat"
+        component={ChatScreen}
+        options={{
+          headerShown: true,
+          title: 'Tin nhắn',
+          headerBackTitle: 'Back',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name="AppliedJobs"
+        component={AppliedJobsScreen}
+        options={{
+          headerShown: true,
+          title: 'Đã ứng tuyển',
+          headerBackTitle: 'Back',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name="SavedJobs"
+        component={SavedJobsScreen}
+        options={{
+          headerShown: true,
+          title: 'Đã lưu',
+          headerBackTitle: 'Back',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{
+          headerShown: true,
+          title: 'Thông báo',
           headerBackTitle: 'Back',
         }}
       />
