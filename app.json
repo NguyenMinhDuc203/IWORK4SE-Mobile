@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "iWork4SE Mobile",
+    "name": "iWork4SE",
     "slug": "iwork4se-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -33,7 +33,10 @@
       "expo-font"
     ],
     "extra": {
-      "apiUrl": "http://13.212.17.217:8080"
+      "apiUrl": "https://api.iwork4se.io.vn",
+      "eas": {
+        "projectId": "922eb0b7-66f4-4705-a837-729a776c4c70"
+      }
     }
   }
 }
